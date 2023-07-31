@@ -1,0 +1,22 @@
+{
+  "name": "sentimental-analysis",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx esbuild --bundle src/handler.ts --platform=node --target=node18 --format=cjs --external:aws-sdk --outfile=.esbuild/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-comprehend": "^3.379.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.4.5",
+    "esbuild": "^0.18.17",
+    "typescript": "^5.1.6"
+  }
+}
