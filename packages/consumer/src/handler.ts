@@ -2,22 +2,20 @@ import {
   BatchDetectSentimentCommand,
   BatchDetectSentimentItemResult,
   ComprehendClient,
-  SentimentType,
 } from "@aws-sdk/client-comprehend";
+import {
+  BatchWriteItemCommand,
+  DynamoDBClient,
+} from "@aws-sdk/client-dynamodb";
 import { KinesisStreamEvent } from "aws-lambda";
+import { v4 as uuid } from "uuid";
 
 const comprehendClient = new ComprehendClient({
   region: "ap-southeast-2",
 });
+const dynamoDbClient = new DynamoDBClient({ region: "ap-southeast-2" });
 
-type SentimentalResult = {
-  input: string;
-  result: SentimentType | string;
-};
-
-export async function handler(
-  event: KinesisStreamEvent
-): Promise<SentimentalResult[]> {
+export async function handler(event: KinesisStreamEvent): Promise<void> {
   const records = event.Records.map((record) =>
     Buffer.from(record.kinesis.data, "base64").toString("utf-8")
   );
@@ -33,19 +31,38 @@ export async function handler(
     throw new Error("Result from comprehend could not be retrieved");
   }
 
-  const sentimentalResult = result.ResultList.filter(
+  const sentimentalResults = result.ResultList.filter(
     (result) => typeof result.Index === "number" && result.Sentiment
   ).map((value) => {
     let result = value as Required<BatchDetectSentimentItemResult>;
 
     return {
-      input: records[result.Index],
-      result: result.Sentiment,
+      text: records[result.Index],
+      sentiment: result.Sentiment,
+      sentimentScore: result.SentimentScore,
     };
   });
 
-  console.log("Results from AWS comprehend");
-  console.log(sentimentalResult);
-
-  return sentimentalResult;
+  console.log("writing to dynamodb");
+  await dynamoDbClient.send(
+    new BatchWriteItemCommand({
+      RequestItems: {
+        "reviews-sentimental-table": sentimentalResults.map(
+          (sentimentalResult) => {
+            return {
+              PutRequest: {
+                Item: {
+                  id: { S: uuid() },
+                  text: { S: sentimentalResult.text },
+                  sentiment: { S: sentimentalResult.sentiment },
+                  sentimentScore: { N: (0.5).toString() },
+                },
+              },
+            };
+          }
+        ),
+      },
+    })
+  );
+  console.log("written to dynamodb");
 }

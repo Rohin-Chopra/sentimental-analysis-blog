@@ -8,6 +8,20 @@ resource "aws_kinesis_stream" "stream" {
   }
 }
 
+module "dynamodb_table" {
+  source = "terraform-aws-modules/dynamodb-table/aws"
+
+  name     = "reviews-sentimental-table"
+  hash_key = "id"
+
+  attributes = [
+    {
+      name = "id"
+      type = "S"
+    }
+  ]
+}
+
 module "producer_lambda_function" {
   source  = "terraform-aws-modules/lambda/aws"
   version = "5.3.0"
@@ -21,13 +35,7 @@ module "producer_lambda_function" {
   }
 
   source_path = [
-    "${path.module}/../packages/producer/.esbuild",
-    {
-      path = "${path.module}/../packages/producer"
-      commands = [
-        "npm run build"
-      ]
-    }
+    "${path.module}/../packages/producer/.esbuild"
   ]
 
   attach_policy_statements = true
@@ -50,12 +58,6 @@ module "consumer_lambda_function" {
 
   source_path = [
     "${path.module}/../packages/consumer/.esbuild",
-    {
-      path = "${path.module}/../packages/consumer"
-      commands = [
-        "npm run build"
-      ]
-    }
   ]
 
   attach_policy_statements = true
@@ -77,6 +79,12 @@ module "consumer_lambda_function" {
       effect    = "Allow"
       actions   = ["comprehend:BatchDetectSentiment"]
       resources = ["*"]
+    }
+
+    dynamodb = {
+      effect    = "Allow"
+      actions   = ["dynamodb:BatchWriteItem"]
+      resources = [module.dynamodb_table.dynamodb_table_arn]
     }
   }
 }
