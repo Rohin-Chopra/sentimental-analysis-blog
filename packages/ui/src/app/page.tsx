@@ -48,10 +48,7 @@ export default async function Home() {
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
               <th scope="col" className="px-6 py-3">
-                Review ID
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Review Text
+                Review
               </th>
               <th scope="col" className="px-6 py-3">
                 Sentiment
@@ -64,10 +61,9 @@ export default async function Home() {
           <tbody>
             {reviews?.map((review) => (
               <tr
-                className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                className="bg-white border-b dark:bg-gray-900 dark:border-gray-700"
                 key={review.id}
               >
-                <td className="px-6 py-4">{review.id}</td>
                 <td className="px-6 py-4">{review.text}</td>
                 <td className="px-6 py-4">{review.sentiment}</td>
                 <td className="px-6 py-4">{review.sentimentScore}</td>
