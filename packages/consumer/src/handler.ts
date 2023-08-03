@@ -2,6 +2,7 @@ import {
   BatchDetectSentimentCommand,
   BatchDetectSentimentItemResult,
   ComprehendClient,
+  SentimentScore,
 } from "@aws-sdk/client-comprehend";
 import {
   BatchWriteItemCommand,
@@ -32,7 +33,10 @@ export async function handler(event: KinesisStreamEvent): Promise<void> {
   }
 
   const sentimentalResults = result.ResultList.filter(
-    (result) => typeof result.Index === "number" && result.Sentiment
+    (result) =>
+      typeof result.Index === "number" &&
+      result.Sentiment &&
+      result.SentimentScore
   ).map((value) => {
     let result = value as Required<BatchDetectSentimentItemResult>;
 
@@ -43,19 +47,28 @@ export async function handler(event: KinesisStreamEvent): Promise<void> {
     };
   });
 
-  console.log("writing to dynamodb");
   await dynamoDbClient.send(
     new BatchWriteItemCommand({
       RequestItems: {
         "reviews-sentimental-table": sentimentalResults.map(
           (sentimentalResult) => {
+            const loweredSentimentScoreKey =
+              sentimentalResult.sentiment.toLowerCase();
+            const sentimentScoreKey = (loweredSentimentScoreKey.charAt(0)
+              .toUpperCase +
+              loweredSentimentScoreKey.slice(1)) as keyof SentimentScore;
+
             return {
               PutRequest: {
                 Item: {
                   id: { S: uuid() },
                   text: { S: sentimentalResult.text },
                   sentiment: { S: sentimentalResult.sentiment },
-                  sentimentScore: { N: (0.5).toString() },
+                  sentimentScore: {
+                    N: sentimentalResult.sentimentScore[
+                      sentimentScoreKey
+                    ]!.toString(),
+                  },
                 },
               },
             };
@@ -64,5 +77,4 @@ export async function handler(event: KinesisStreamEvent): Promise<void> {
       },
     })
   );
-  console.log("written to dynamodb");
 }
