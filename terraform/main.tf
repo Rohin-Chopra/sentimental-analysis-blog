@@ -8,18 +8,21 @@ resource "aws_kinesis_stream" "stream" {
   }
 }
 
-module "dynamodb_table" {
-  source = "terraform-aws-modules/dynamodb-table/aws"
 
-  name     = "reviews-sentimental-table"
-  hash_key = "id"
+resource "aws_dynamodb_table" "my_table" {
+  name           = "reviews-sentimental-table"
+  hash_key       = "id"
+  read_capacity  = 5
+  write_capacity = 5
 
-  attributes = [
-    {
-      name = "id"
-      type = "S"
-    }
-  ]
+  attribute {
+    name = "id"
+    type = "N"
+  }
+
+  tags = {
+    Environment = "Production"
+  }
 }
 
 module "producer_lambda_function" {
