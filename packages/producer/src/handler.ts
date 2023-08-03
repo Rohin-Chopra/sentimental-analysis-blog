@@ -3,8 +3,8 @@ import { v4 as uuid } from "uuid";
 import reviews from "./reviews.json";
 const kinesisClient = new KinesisClient({ region: "ap-southeast-2" });
 
-export async function handler() {
-  return await kinesisClient.send(
+export async function handler(): Promise<void> {
+  await kinesisClient.send(
     new PutRecordsCommand({
       StreamName: process.env.KINESIS_STREAM_NAME,
       Records: reviews.map((review) => {
