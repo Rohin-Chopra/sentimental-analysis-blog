@@ -8,20 +8,14 @@ resource "aws_kinesis_stream" "stream" {
   }
 }
 
-
-resource "aws_dynamodb_table" "my_table" {
-  name           = "reviews-sentimental-table"
-  hash_key       = "id"
-  read_capacity  = 5
-  write_capacity = 5
+resource "aws_dynamodb_table" "reviews_table" {
+  name         = "reviews-sentimental-table"
+  hash_key     = "id"
+  billing_mode = "PAY_PER_REQUEST"
 
   attribute {
     name = "id"
-    type = "N"
-  }
-
-  tags = {
-    Environment = "Production"
+    type = "S"
   }
 }
 
@@ -63,6 +57,11 @@ module "consumer_lambda_function" {
     "${path.module}/../packages/consumer/.esbuild",
   ]
 
+
+  environment_variables = {
+    "DYNAMODB_TABLE_NAME" = aws_dynamodb_table.reviews_table.id
+  }
+
   attach_policy_statements = true
   policy_statements = {
     kinesis = {
@@ -87,7 +86,7 @@ module "consumer_lambda_function" {
     dynamodb = {
       effect    = "Allow"
       actions   = ["dynamodb:BatchWriteItem"]
-      resources = [module.dynamodb_table.dynamodb_table_arn]
+      resources = [aws_dynamodb_table.reviews_table.arn]
     }
   }
 }

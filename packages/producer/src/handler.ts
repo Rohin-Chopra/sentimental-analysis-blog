@@ -1,9 +1,14 @@
 import { KinesisClient, PutRecordsCommand } from "@aws-sdk/client-kinesis";
 import { v4 as uuid } from "uuid";
-import reviews from "./reviews.json";
+
 const kinesisClient = new KinesisClient({ region: "ap-southeast-2" });
 
-export async function handler(): Promise<void> {
+const reviews = [
+  "these are some awesome shoes, a life save for me",
+  "My feet are swollen just after a couple of hours of use, would not recommend to anyone",
+]; // Very creative reviews
+
+export async function handler() {
   await kinesisClient.send(
     new PutRecordsCommand({
       StreamName: process.env.KINESIS_STREAM_NAME,

@@ -47,33 +47,34 @@ export async function handler(event: KinesisStreamEvent): Promise<void> {
     };
   });
 
+  const tableName = process.env.DYNAMODB_TABLE_NAME as string;
+
   await dynamoDbClient.send(
     new BatchWriteItemCommand({
       RequestItems: {
-        "reviews-sentimental-table": sentimentalResults.map(
-          (sentimentalResult) => {
-            const loweredSentimentScoreKey =
-              sentimentalResult.sentiment.toLowerCase();
-            const sentimentScoreKey = (loweredSentimentScoreKey.charAt(0)
-              .toUpperCase +
-              loweredSentimentScoreKey.slice(1)) as keyof SentimentScore;
+        [tableName]: sentimentalResults.map((sentimentalResult) => {
+          const loweredSentimentScoreKey =
+            sentimentalResult.sentiment.toLowerCase();
+          const sentimentScoreKey = (loweredSentimentScoreKey
+            .charAt(0)
+            .toUpperCase() +
+            loweredSentimentScoreKey.slice(1)) as keyof SentimentScore;
 
-            return {
-              PutRequest: {
-                Item: {
-                  id: { S: uuid() },
-                  text: { S: sentimentalResult.text },
-                  sentiment: { S: sentimentalResult.sentiment },
-                  sentimentScore: {
-                    N: sentimentalResult.sentimentScore[
-                      sentimentScoreKey
-                    ]!.toString(),
-                  },
+          return {
+            PutRequest: {
+              Item: {
+                id: { S: uuid() },
+                text: { S: sentimentalResult.text },
+                sentiment: { S: sentimentalResult.sentiment },
+                sentimentScore: {
+                  N: sentimentalResult.sentimentScore[
+                    sentimentScoreKey
+                  ]!.toString(),
                 },
               },
-            };
-          }
-        ),
+            },
+          };
+        }),
       },
     })
   );
